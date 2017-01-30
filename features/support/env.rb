@@ -20,7 +20,7 @@ require 'rspec/expectations'
 Before do
   # Grab a connection
   unless @c
-    @c = ScormCloud::ScormCloud.new($scorm_cloud_appid,$scorm_cloud_secret)
+    @c = ScormCloud::ScormCloud.new($scorm_cloud_appid,$scorm_cloud_secret,$scorm_cloud_url)
   end
 
   # Cleanup all courses

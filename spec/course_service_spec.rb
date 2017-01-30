@@ -1,7 +1,7 @@
 require 'spec_helper'
 
 describe "Rustici Web Service API" do
-  describe ScormCloud::ScormCloud.new($scorm_cloud_appid,$scorm_cloud_secret).course do
+  describe ScormCloud::ScormCloud.new($scorm_cloud_appid,$scorm_cloud_secret,$scorm_cloud_url).course do
     it { should respond_to(:import_course).with(2).arguments }
     it { should respond_to(:preview).with(2).argument }
     it { should respond_to(:delete_course).with(1).arguments }
