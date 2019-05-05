@@ -27,16 +27,8 @@ module ScormCloud
     end
 
     def import_course_async(course_id, file)
-      xml = import_course_response('importCourseAsync', course_id, file)
-
-      if xml.elements['/rsp/token/id']
-        token = xml.elements['/rsp/token/id'].text
-        { :token => token }
-      else
-        xml_text = ''
-        xml.write(xml_text)
-        raise "Not successful. Response: #{xml_text}"
-      end
+      response = api_instance.create_upload_and_import_course_job(course_id,{file:file})
+      { :token => response.result }
     end
 
     def get_assets(course_id)
@@ -44,16 +36,8 @@ module ScormCloud
     end
 
     def get_async_import_result(token)
-      xml = connection.call("rustici.course.getAsyncImportResult", :token => token)
 
-      response = {}
-      response[:status] = xml.elements['/rsp/status'].text
-      response[:error] = xml.elements['/rsp/error'].text if xml.elements['/rsp/error']
-
-      if xml.elements['/rsp/importresults/importresult'] && xml.elements['/rsp/importresults/importresult'].attributes["successful"] == "true"
-        response[:title] = xml.elements['/rsp/importresults/importresult/title'].text
-      end
-
+      response = api_instance.get_import_job_status
       response
     end
 
@@ -95,7 +79,9 @@ module ScormCloud
     end
 
     private
-
+    def api_instance
+      @api_instance ||= RusticiSoftwareCloudV2::CourseApi.new
+    end
     def import_course_response(import_method, course_id, file)
       import_service = "rustici.course.#{ import_method }"
 

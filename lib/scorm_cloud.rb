@@ -1,3 +1,4 @@
+require 'rustici_software_cloud_v2'
 require 'rexml/document'
 require 'digest/md5'
 require 'net/http'
