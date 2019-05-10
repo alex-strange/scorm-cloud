@@ -5,6 +5,7 @@ module ScormCloud
 
     # TODO: Handle Warnings
     def import_course(course_id, file)
+      raise "Not Implemented: import_course"
       xml = import_course_response('importCourse', course_id, file)
 
       if xml.elements['//rsp/importresult'] && xml.elements['//rsp/importresult'].attributes["successful"] == "true"
@@ -27,55 +28,65 @@ module ScormCloud
     end
 
     def import_course_async(course_id, file)
-      response = api_instance.create_upload_and_import_course_job(course_id,{file:file})
+      response = api_instance.create_upload_and_import_course_job("default",course_id,{file:file})
       { :token => response.result }
     end
 
     def get_assets(course_id)
-      connection.call_raw("rustici.course.getAssets", { courseid: course_id })
+      raise "Not Implemented: get_assets"
+      #connection.call_raw("rustici.course.getAssets", { courseid: course_id })
     end
 
     def get_async_import_result(token)
-
-      response = api_instance.get_import_job_status
-      response
+      response = api_instance.get_import_job_status("default",token,{may_create_new_version:true})
+      return response
     end
 
     def exists(course_id)
-      connection.call_raw("rustici.course.exists", :courseid => course_id).include?("<result>true</result>")
+      begin
+        api_instance.get_course("default",course_id)
+        return true
+      rescue RusticiSoftwareCloudV2::ApiError => e
+        return false
+      end
     end
 
     def get_attributes(course_id)
-      xml = connection.call("rustici.course.getAttributes", :courseid => course_id)
-      xml_to_attributes(xml)
+      raise "Not Implemented: get_attributes"
     end
 
     def delete_course(course_id)
-      connection.call("rustici.course.deleteCourse", :courseid => course_id)
+      response = api_instance.delete_course("default",course_id)
       true
     end
 
     def get_manifest(course_id)
+      raise "Not Implemented: get_manifest"
       connection.call_raw("rustici.course.getManifest", :courseid => course_id)
     end
 
     def get_course_list(options = {})
-      xml = connection.call("rustici.course.getCourseList", options)
-      xml.elements["/rsp/courselist"].map { |e| Course.from_xml(e) }
+      response = api_instance.get_courses("default",{include_registration_count:true})
+      response.courses.map { |e| Course.from_response(e) }
     end
 
     def preview(course_id, redirect_url)
-      connection.launch_url("rustici.course.preview", :courseid => course_id, :redirecturl => redirect_url)
+      launch_link_request = RusticiSoftwareCloudV2::LaunchLinkRequestSchema.new
+      launch_link_request.redirect_on_exit_url = redirect_url
+      response = api_instance.build_course_preview_launch_link("default",course_id, launch_link_request)
+      return response.launch_link
     end
 
     def update_attributes(course_id, attributes)
-      xml = connection.call("rustici.course.updateAttributes", attributes.merge({:courseid => course_id}))
-      xml_to_attributes(xml)
+      raise "Not Implemented: update_attributes"
+      #xml = connection.call("rustici.course.updateAttributes", attributes.merge({:courseid => course_id}))
+      #xml_to_attributes(xml)
     end
 
     def get_metadata(course_id, scope='course')
-      xml = connection.call("rustici.course.getMetadata", courseid: course_id, scope: scope)
-      xml.elements['/rsp/package']
+      api_instance.get_course("default",course_id,{include_course_metadata:true}).to_hash
+      #xml = connection.call("rustici.course.getMetadata", courseid: course_id, scope: scope)
+      #xml.elements['/rsp/package']
     end
 
     private
