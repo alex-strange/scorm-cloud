@@ -74,7 +74,7 @@ module ScormCloud
       launch_link_request = RusticiSoftwareCloudV2::LaunchLinkRequestSchema.new
       launch_link_request.redirect_on_exit_url = redirect_url
       response = api_instance.build_course_preview_launch_link("default",course_id, launch_link_request)
-      return response.launch_link
+      return "#{api_instance.api_client.config.scheme}://#{api_instance.api_client.config.host}#{response.launch_link}"
     end
 
     def update_attributes(course_id, attributes)
