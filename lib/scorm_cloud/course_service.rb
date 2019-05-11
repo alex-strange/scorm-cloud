@@ -39,7 +39,7 @@ module ScormCloud
 
     def get_async_import_result(token)
       response = api_instance.get_import_job_status("default",token,{may_create_new_version:true})
-      return response
+      return response.to_hash
     end
 
     def exists(course_id)
