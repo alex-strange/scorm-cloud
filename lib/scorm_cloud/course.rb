@@ -5,6 +5,7 @@ module ScormCloud
       c = Course.new
       c.set_attributes({
         "id"=>response.id,
+        "title"=>response.title,
         "versions"=>response.version,
         "registrations"=>response.registration_count,
         "size"=>0

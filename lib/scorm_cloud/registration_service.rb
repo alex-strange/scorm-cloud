@@ -5,7 +5,7 @@ module ScormCloud
       :test_registration_post_url
 
     def create_registration(course_id, reg_id, first_name, last_name, learner_id, options = {})
-      params = options.merge({ 
+      params = options.merge({
         :courseid => course_id,
         :regid => reg_id,
         :fname => first_name,
@@ -20,7 +20,7 @@ module ScormCloud
       xml = connection.call("rustici.registration.deleteRegistration", {:regid => reg_id })
       !xml.elements["/rsp/success"].nil?
     end
-
+    
     def get_registration_list(options = {})
       xml = connection.call("rustici.registration.getRegistrationList", options)
       xml.elements["/rsp/registrationlist"].map { |e| Registration.from_xml(e) }
@@ -37,7 +37,7 @@ module ScormCloud
     end
 
     def launch(reg_id, redirect_url, options = {})
-      params = options.merge({ 
+      params = options.merge({
         :regid => reg_id,
         :redirecturl => redirect_url
       })

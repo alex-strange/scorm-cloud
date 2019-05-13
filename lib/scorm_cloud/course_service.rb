@@ -38,8 +38,11 @@ module ScormCloud
     end
 
     def get_async_import_result(token)
-      response = api_instance.get_import_job_status("default",token,{may_create_new_version:true})
-      return response.to_hash
+      response = api_instance.get_import_job_status("default",token,{may_create_new_version:true}).to_hash
+      response[:status] = response[:status].downcase
+      response[:status] = "finished" if response[:status]=="complete"
+      response[:title] = response.dig :importResult,:course,:title
+      return response
     end
 
     def exists(course_id)
