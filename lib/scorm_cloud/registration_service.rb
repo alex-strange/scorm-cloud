@@ -5,7 +5,7 @@ module ScormCloud
       :test_registration_post_url
 
     def create_registration(course_id, reg_id, first_name, last_name, learner_id, options = {})
-      params = options.merge({ 
+      params = options.merge({
         :courseid => course_id,
         :regid => reg_id,
         :fname => first_name,
@@ -25,6 +25,10 @@ module ScormCloud
       xml = connection.call("rustici.registration.getRegistrationList", options)
       xml.elements["/rsp/registrationlist"].map { |e| Registration.from_xml(e) }
     end
+    def get_registration_detail(regid)
+      xml = connection.call("rustici.registration.getRegistrationDetail", {regid:regid})
+      return Registration.from_xml(xml.elements["/rsp/registration"])
+    end
 
     def get_registration_result(reg_id, format = "course")
       raise "Illegal format argument: #{format}" unless ["course","activity","full"].include?(format)
@@ -37,7 +41,7 @@ module ScormCloud
     end
 
     def launch(reg_id, redirect_url, options = {})
-      params = options.merge({ 
+      params = options.merge({
         :regid => reg_id,
         :redirecturl => redirect_url
       })
