@@ -10,7 +10,7 @@ module ScormCloud
 
 
     def self.from_response(response)
-      binding.pry
+      #binding.pry
       stored_dispatch = ::Dispatch.find_by_scorm_id!(response.id)
       c = Dispatch.new
       c.set_attributes({
@@ -21,7 +21,7 @@ module ScormCloud
         "course_id"=>response.data.course_id,
         "enabled"=>response.data.enabled,
         "notes"=>"",
-        "open"=>response.data.allowed_new_registrations,
+        "open"=>response.data.allow_new_registrations,
         "version"=>1,
         "tags"=>stored_dispatch.parsed_tags,
         "created_by"=>"",

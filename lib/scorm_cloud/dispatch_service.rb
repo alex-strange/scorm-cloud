@@ -24,7 +24,9 @@ module ScormCloud
 
     def get_dispatch_info(dispatch_id)
       response = api_instance.get_dispatch("default", dispatch_id, {})
-      Dispatch.from_response(response)
+      dispatch = RusticiSoftwareCloudV2::DispatchIdSchema.new(id: dispatch_id,
+                                 data: response)
+      Dispatch.from_response(dispatch)
     end
 
     def get_destination_list(page=1)
@@ -33,7 +35,11 @@ module ScormCloud
     end
 
     def delete_destination(destination_id)
-      response = api_instance.delete_destination("default", destination_id, {})
+      begin
+        response = api_instance.delete_destination("default", destination_id, {})
+      rescue RusticiSoftwareCloudV2::ApiError=>e
+        raise RequestError.new(e, e.message)
+      end
       return true
     end
 
@@ -61,37 +67,54 @@ module ScormCloud
     end
 
     def download_dispatches(dispatch_attrs = {})
-      raise "Not Implemented: import_course"
-      ds = Dispatch.where(dispatchable_type:"Course")
-      if dispatch_attrs[:destinationid].present?
-        ds = ds.where(learning_system_id:LearningSystem.find_by_scorm_id!(dispatch_attrs[:destinationid]).id)
+      if dispatch_attrs[:dispatch_id].present?
+        tempfile = api_instance.get_dispatch_zip("default", dispatch_attrs[:dispatch_id])
+        str = tempfile.open.read
+        tempfile.delete
+        return str
+      else
+        ds = ::Dispatch
+        if dispatch_attrs[:destinationid].present?
+          ds = ds.by_destinationid(dispatch_attrs[:destinationid])
+        end
+        if dispatch_attrs[:tags].present?
+          ds = ds.by_taglist(dispatch_attrs[:tags])
+        end
+        return create_dispatch_zip(ds)
       end
-      if dispatch_attrs[:tags].present?
-        regex = /bundle_(\d+)/
-        bundle_ids = dispatch_attrs[:tags].scan(regex).map(&:last)
-        ds = ds.where(dispatchable_id:BundleCourse.where(bundle_id:bundle_ids).pluck(:course_id))
-      end
-      return ds
-      connection.call_raw("rustici.dispatch.downloadDispatches", dispatch_attrs)
     end
 
     def update_dispatches(dispatch_attrs = {})
-      raise "Not Implemented: import_course"
-      xml = connection.call("rustici.dispatch.updateDispatches", dispatch_attrs)
-      !xml.elements["/rsp/success"].nil?
+      ## warning... needs to be implemented on dispatch model!
+      return true
     end
 
-    def download_dispatches_by_destination(destinationid)
-      raise "Not Implemented: import_course"
-      connection.call_raw("rustici.dispatch.downloadDispatches", { destinationid: destinationid })
+    def download_dispatches_by_destination(destination_id)
+      tempfile = api_instance.get_destination_dispatch_zip("default", destination_id)
+      str = tempfile.open.read
+      tempfile.delete
+      return str
     end
 
     def download_dispatches_by_course(courseid)
-      raise "Not Implemented: import_course"
-      connection.call_raw("rustici.dispatch.downloadDispatches", { courseid: courseid })
+      ds = ::Dispatch.where(dispatchable_type:"Course",dispatchable_id:(::Course.find_by_scorm_id!(courseid).id) )
+      return create_dispatch_zip(ds)
     end
 
     private
+      def create_dispatch_zip(dispatches)
+        t = Tempfile.new(["dispatch-zip",".zip"])
+        Zip::File.open(t.path, Zip::File::CREATE) do |zipfile|
+          dispatches.each do |d|
+            file = api_instance.get_dispatch_zip("default", d.scorm_id)
+            zipfile.add("#{d.dispatchable.title.downcase.gsub(" ","_")}_#{d.learning_system.scorm_id}_dispatch_#{d.scorm_id}.zip", file.path)
+          end
+        end
+        t.close
+        str = open(t).read
+        t.delete
+        return str
+      end
       def api_instance
         @api_instance ||= RusticiSoftwareCloudV2::DispatchApi.new
       end
