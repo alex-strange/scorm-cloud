@@ -5,60 +5,88 @@ module ScormCloud
       :test_registration_post_url
 
     def create_registration(course_id, reg_id, first_name, last_name, learner_id, options = {})
-      params = options.merge({
-        :courseid => course_id,
-        :regid => reg_id,
-        :fname => first_name,
-        :lname => last_name,
-        :learnerid => learner_id
-      })
-      xml = connection.call("rustici.registration.createRegistration", params)
-      !xml.elements["/rsp/success"].nil?
+      begin
+        learner_schema = RusticiSoftwareCloudV2::LearnerSchema.new
+        learner_schema.first_name = first_name
+        learner_schema.last_name = last_name
+        learner_schema.id = learner_id
+
+        registration_schema = RusticiSoftwareCloudV2::CreateRegistrationSchema.new
+        registration_schema.course_id = course_id
+        registration_schema.registration_id = reg_id
+        registration_schema.learner = learner_schema
+        api_instance.create_registration("default",registration_schema,options)
+      rescue RusticiSoftwareCloudV2::ApiError=>e
+        raise RequestError.new(e, e.message)
+      end
+      return true
     end
 
     def delete_registration(reg_id)
-      xml = connection.call("rustici.registration.deleteRegistration", {:regid => reg_id })
-      !xml.elements["/rsp/success"].nil?
+      begin
+        api_instance.delete_registration("default",reg_id)
+      rescue RusticiSoftwareCloudV2::ApiError=>e
+        raise RequestError.new(e, e.message)
+      end
+      return true
     end
-    
+
     def get_registration_list(options = {})
-      xml = connection.call("rustici.registration.getRegistrationList", options)
-      xml.elements["/rsp/registrationlist"].map { |e| Registration.from_xml(e) }
+      opts = {
+        course_id: options[:courseid], # String | Only registrations for the specified course id will be included.
+        learner_id: options[:learnerid], # String | Only registrations for the specified learner id will be included.
+        since: options[:after], # DateTime | Only items updated since the specified ISO 8601 TimeStamp (inclusive) are included. If a time zone is not specified, UTC time zone will be used.
+        _until: options[:until] # DateTime | Only items updated before the specified ISO 8601 TimeStamp (inclusive) are included. If a time zone is not specified, UTC time zone will be used.
+      }
+      begin
+        result = api_instance.get_registrations("default",opts)
+        result.registrations.map { |e| Registration.from_response(e) }
+      rescue RusticiSoftwareCloudV2::ApiError=>e
+        #if e.message.ends_with? "is invalid"
+          return []
+        #else
+        #  raise RequestError.new(e, e.message)
+        #end
+      end
     end
     def get_registration_detail(regid)
-      xml = connection.call("rustici.registration.getRegistrationDetail", {regid:regid})
-      return Registration.from_xml(xml.elements["/rsp/registration"])
+      result = api_instance.get_registration_progress("default",regid)
+      return Registration.from_response(result)
     end
 
     def get_registration_result(reg_id, format = "course")
       raise "Illegal format argument: #{format}" unless ["course","activity","full"].include?(format)
-      xml = connection.call("rustici.registration.getRegistrationResult", { :regid => reg_id, :resultsformat => format })
-
-      xml.elements["/rsp/registrationreport"].reduce({}) do |acc, attr|
-        acc[attr.name.to_sym] = attr.text
-        acc
+      begin
+        result = api_instance.get_registration_progress("default",reg_id)
+        reg_result = result.registration_completion.downcase
+        #override to match old api return
+        reg_result = "complete" if reg_result == "completed"
+      rescue RusticiSoftwareCloudV2::ApiError=>e
+        raise RequestError.new(e, e.message)
       end
+      return {complete:reg_result, success:result.registration_success.downcase, totaltime:result.total_seconds_tracked, score:result.score.try(:scaled) }
     end
 
     def launch(reg_id, redirect_url, options = {})
-      params = options.merge({
-        :regid => reg_id,
-        :redirecturl => redirect_url
-      })
-      connection.launch_url("rustici.registration.launch", params)
+      launch_link_request = RusticiSoftwareCloudV2::LaunchLinkRequestSchema.new
+      launch_link_request.redirect_on_exit_url = redirect_url
+      result = api_instance.build_registration_launch_link("default",reg_id, launch_link_request)
+      return "#{api_instance.api_client.config.scheme}://#{api_instance.api_client.config.host}/#{result.launch_link}"
     end
 
     def get_launch_history(reg_id)
-      xml = connection.call("rustici.registration.getLaunchHistory", { :regid => reg_id })
-      xml.elements["/rsp/launchhistory"].map { |e| Launch.from_xml(e) }
+
+      result = api_instance.get_registration_launch_history("default",reg_id)
+      result.launch_history.map { |e| Launch.from_response(e) }
     end
 
     def reset_registration(reg_id)
-      xml = connection.call("rustici.registration.resetRegistration", {:regid => reg_id })
-      !xml.elements["/rsp/success"].nil?
+      api_instance.delete_registration_progress("default",reg_id)
+      return true
     end
 
     def update_learner_info(learner_id, first_name, last_name, options)
+      raise "Not Implemented: update_learner_info"
       params = options.merge({
         :fname => first_name,
         :lname => last_name,
@@ -69,7 +97,18 @@ module ScormCloud
     end
 
     def exists(reg_id)
-      connection.call_raw("rustici.registration.exists", :regid => reg_id).include?("<result>true</result>")
+      begin
+        api_instance.get_registration("default",reg_id)
+        return true
+      rescue RusticiSoftwareCloudV2::ApiError => e
+        return false
+      end
     end
+
+    private
+    def api_instance
+      @api_instance ||= RusticiSoftwareCloudV2::RegistrationApi.new
+    end
+
   end
 end
