@@ -67,7 +67,7 @@ module ScormCloud
     end
 
     def download_dispatches(dispatch_attrs = {})
-      if dispatch_attrs[:dispatch_id].present?
+      if dispatch_attrs[:dispatchid].present?
         tempfile = api_instance.get_dispatch_zip(ENV['RUSTICI_TENANT'], dispatch_attrs[:dispatch_id])
         str = tempfile.open.read
         tempfile.delete
