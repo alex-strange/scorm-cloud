@@ -28,7 +28,7 @@ module ScormCloud
     end
 
     def import_course_async(course_id, file)
-      response = api_instance.create_upload_and_import_course_job("default",course_id,{file:file})
+      response = api_instance.create_upload_and_import_course_job("default",course_id,{file:file,may_create_new_version: true})
       { :token => response.result }
     end
 
