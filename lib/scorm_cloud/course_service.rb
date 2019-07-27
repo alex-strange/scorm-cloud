@@ -28,7 +28,7 @@ module ScormCloud
     end
 
     def import_course_async(course_id, file)
-      response = api_instance.create_upload_and_import_course_job("default",course_id,{file:file,may_create_new_version: true})
+      response = api_instance.create_upload_and_import_course_job(ENV['RUSTICI_TENANT'],course_id,{file:file,may_create_new_version: true})
       { :token => response.result }
     end
 
@@ -38,7 +38,7 @@ module ScormCloud
     end
 
     def get_async_import_result(token)
-      response = api_instance.get_import_job_status("default",token,{may_create_new_version:true}).to_hash
+      response = api_instance.get_import_job_status(ENV['RUSTICI_TENANT'],token,{may_create_new_version:true}).to_hash
       response[:status] = response[:status].downcase
       response[:status] = "finished" if response[:status]=="complete"
       response[:title] = response.dig :importResult,:course,:title
@@ -47,7 +47,7 @@ module ScormCloud
 
     def exists(course_id)
       begin
-        api_instance.get_course("default",course_id)
+        api_instance.get_course(ENV['RUSTICI_TENANT'],course_id)
         return true
       rescue RusticiSoftwareCloudV2::ApiError => e
         return false
@@ -59,7 +59,7 @@ module ScormCloud
     end
 
     def delete_course(course_id)
-      response = api_instance.delete_course("default",course_id)
+      response = api_instance.delete_course(ENV['RUSTICI_TENANT'],course_id)
       true
     end
 
@@ -69,14 +69,14 @@ module ScormCloud
     end
 
     def get_course_list(options = {})
-      response = api_instance.get_courses("default",{include_registration_count:true})
+      response = api_instance.get_courses(ENV['RUSTICI_TENANT'],{include_registration_count:true})
       response.courses.map { |e| Course.from_response(e) }
     end
 
     def preview(course_id, redirect_url)
       launch_link_request = RusticiSoftwareCloudV2::LaunchLinkRequestSchema.new
       launch_link_request.redirect_on_exit_url = redirect_url
-      response = api_instance.build_course_preview_launch_link("default",course_id, launch_link_request)
+      response = api_instance.build_course_preview_launch_link(ENV['RUSTICI_TENANT'],course_id, launch_link_request)
       return "#{api_instance.api_client.config.scheme}://#{api_instance.api_client.config.host}#{response.launch_link}"
     end
 
@@ -87,7 +87,7 @@ module ScormCloud
     end
 
     def get_metadata(course_id, scope='course')
-      api_instance.get_course("default",course_id,{include_course_metadata:true}).to_hash
+      api_instance.get_course(ENV['RUSTICI_TENANT'],course_id,{include_course_metadata:true}).to_hash
       #xml = connection.call("rustici.course.getMetadata", courseid: course_id, scope: scope)
       #xml.elements['/rsp/package']
     end

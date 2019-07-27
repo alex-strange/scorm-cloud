@@ -15,7 +15,7 @@ module ScormCloud
         registration_schema.course_id = course_id
         registration_schema.registration_id = reg_id
         registration_schema.learner = learner_schema
-        api_instance.create_registration("default",registration_schema,options)
+        api_instance.create_registration(ENV['RUSTICI_TENANT'],registration_schema,options)
       rescue RusticiSoftwareCloudV2::ApiError=>e
         raise RequestError.new(e, e.message)
       end
@@ -24,7 +24,7 @@ module ScormCloud
 
     def delete_registration(reg_id)
       begin
-        api_instance.delete_registration("default",reg_id)
+        api_instance.delete_registration(ENV['RUSTICI_TENANT'],reg_id)
       rescue RusticiSoftwareCloudV2::ApiError=>e
         raise RequestError.new(e, e.message)
       end
@@ -39,7 +39,7 @@ module ScormCloud
         _until: options[:until] # DateTime | Only items updated before the specified ISO 8601 TimeStamp (inclusive) are included. If a time zone is not specified, UTC time zone will be used.
       }
       begin
-        result = api_instance.get_registrations("default",opts)
+        result = api_instance.get_registrations(ENV['RUSTICI_TENANT'],opts)
         result.registrations.map { |e| Registration.from_response(e) }
       rescue RusticiSoftwareCloudV2::ApiError=>e
         #if e.message.ends_with? "is invalid"
@@ -50,14 +50,14 @@ module ScormCloud
       end
     end
     def get_registration_detail(regid)
-      result = api_instance.get_registration_progress("default",regid)
+      result = api_instance.get_registration_progress(ENV['RUSTICI_TENANT'],regid)
       return Registration.from_response(result)
     end
 
     def get_registration_result(reg_id, format = "course")
       raise "Illegal format argument: #{format}" unless ["course","activity","full"].include?(format)
       begin
-        result = api_instance.get_registration_progress("default",reg_id)
+        result = api_instance.get_registration_progress(ENV['RUSTICI_TENANT'],reg_id)
         reg_result = result.registration_completion.downcase
         #override to match old api return
         reg_result = "complete" if reg_result == "completed"
@@ -70,18 +70,18 @@ module ScormCloud
     def launch(reg_id, redirect_url, options = {})
       launch_link_request = RusticiSoftwareCloudV2::LaunchLinkRequestSchema.new
       launch_link_request.redirect_on_exit_url = redirect_url
-      result = api_instance.build_registration_launch_link("default",reg_id, launch_link_request)
+      result = api_instance.build_registration_launch_link(ENV['RUSTICI_TENANT'],reg_id, launch_link_request)
       return "#{api_instance.api_client.config.scheme}://#{api_instance.api_client.config.host}/#{result.launch_link}"
     end
 
     def get_launch_history(reg_id)
 
-      result = api_instance.get_registration_launch_history("default",reg_id)
+      result = api_instance.get_registration_launch_history(ENV['RUSTICI_TENANT'],reg_id)
       result.launch_history.map { |e| Launch.from_response(e) }
     end
 
     def reset_registration(reg_id)
-      api_instance.delete_registration_progress("default",reg_id)
+      api_instance.delete_registration_progress(ENV['RUSTICI_TENANT'],reg_id)
       return true
     end
 
@@ -98,7 +98,7 @@ module ScormCloud
 
     def exists(reg_id)
       begin
-        api_instance.get_registration("default",reg_id)
+        api_instance.get_registration(ENV['RUSTICI_TENANT'],reg_id)
         return true
       rescue RusticiSoftwareCloudV2::ApiError => e
         return false

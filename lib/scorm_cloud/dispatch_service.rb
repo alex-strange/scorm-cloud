@@ -7,36 +7,36 @@ module ScormCloud
       dest_schema = RusticiSoftwareCloudV2::DestinationSchema.new(name: name)
       dest_id_schema = RusticiSoftwareCloudV2::DestinationIdSchema.new(id: destination_id,data: dest_schema)
       list = RusticiSoftwareCloudV2::DestinationListSchema.new(destinations: [dest_id_schema])
-      api_instance.create_destinations("default",list)
+      api_instance.create_destinations(ENV['RUSTICI_TENANT'],list)
       return destination_id
     end
 
     def update_destination(destination_id, name)
       dest_schema = RusticiSoftwareCloudV2::DestinationSchema.new(name: name)
-      api_instance.set_destination("default",destination_id,dest_schema)
+      api_instance.set_destination(ENV['RUSTICI_TENANT'],destination_id,dest_schema)
       return true
     end
 
     def get_dispatch_list(page=1, dispatch_args = {})
-      response = api_instance.get_dispatches("default",{})
+      response = api_instance.get_dispatches(ENV['RUSTICI_TENANT'],{})
       response.dispatches.map { |e| Dispatch.from_response(e) }
     end
 
     def get_dispatch_info(dispatch_id)
-      response = api_instance.get_dispatch("default", dispatch_id, {})
+      response = api_instance.get_dispatch(ENV['RUSTICI_TENANT'], dispatch_id, {})
       dispatch = RusticiSoftwareCloudV2::DispatchIdSchema.new(id: dispatch_id,
                                  data: response)
       Dispatch.from_response(dispatch)
     end
 
     def get_destination_list(page=1)
-      response = api_instance.get_destinations("default",{})
+      response = api_instance.get_destinations(ENV['RUSTICI_TENANT'],{})
       response.destinations.map { |e| Destination.from_response(e) }
     end
 
     def delete_destination(destination_id)
       begin
-        response = api_instance.delete_destination("default", destination_id, {})
+        response = api_instance.delete_destination(ENV['RUSTICI_TENANT'], destination_id, {})
       rescue RusticiSoftwareCloudV2::ApiError=>e
         raise RequestError.new(e, e.message)
       end
@@ -56,19 +56,19 @@ module ScormCloud
       d_id = RusticiSoftwareCloudV2::CreateDispatchIdSchema.new(id: dispatch_id,
                                  data: dispatch)
       d_list = RusticiSoftwareCloudV2::CreateDispatchListSchema.new(dispatches: [d_id])
-      response = api_instance.create_dispatches("default", d_list, {})
+      response = api_instance.create_dispatches(ENV['RUSTICI_TENANT'], d_list, {})
       return dispatch_id
     end
 
     def delete_dispatches(dispatch_id)
 
-      response = api_instance.delete_dispatch("default", dispatch_id, opts = {})
+      response = api_instance.delete_dispatch(ENV['RUSTICI_TENANT'], dispatch_id, opts = {})
       return true
     end
 
     def download_dispatches(dispatch_attrs = {})
       if dispatch_attrs[:dispatch_id].present?
-        tempfile = api_instance.get_dispatch_zip("default", dispatch_attrs[:dispatch_id])
+        tempfile = api_instance.get_dispatch_zip(ENV['RUSTICI_TENANT'], dispatch_attrs[:dispatch_id])
         str = tempfile.open.read
         tempfile.delete
         return str
@@ -90,7 +90,7 @@ module ScormCloud
     end
 
     def download_dispatches_by_destination(destination_id)
-      tempfile = api_instance.get_destination_dispatch_zip("default", destination_id)
+      tempfile = api_instance.get_destination_dispatch_zip(ENV['RUSTICI_TENANT'], destination_id)
       str = tempfile.open.read
       tempfile.delete
       return str
@@ -106,7 +106,7 @@ module ScormCloud
         t = Tempfile.new(["dispatch-zip",".zip"])
         Zip::File.open(t.path, Zip::File::CREATE) do |zipfile|
           dispatches.each do |d|
-            file = api_instance.get_dispatch_zip("default", d.scorm_id)
+            file = api_instance.get_dispatch_zip(ENV['RUSTICI_TENANT'], d.scorm_id)
             zipfile.add("#{d.dispatchable.title.downcase.gsub(" ","_")}_#{d.learning_system.scorm_id}_dispatch_#{d.scorm_id}.zip", file.path)
           end
         end
