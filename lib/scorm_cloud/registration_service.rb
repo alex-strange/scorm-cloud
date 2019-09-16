@@ -39,8 +39,16 @@ module ScormCloud
         _until: options[:until] # DateTime | Only items updated before the specified ISO 8601 TimeStamp (inclusive) are included. If a time zone is not specified, UTC time zone will be used.
       }
       begin
-        result = api_instance.get_registrations(ENV['RUSTICI_TENANT'],opts)
-        result.registrations.map { |e| Registration.from_response(e) }
+        regs = []
+        loop do
+          results = api_instance.get_registrations(ENV['RUSTICI_TENANT'],opts)
+          regs |= results.registrations
+          opts[:more] = results.more
+          puts regs.count
+          puts result.more
+          break unless result.more.present?
+        end
+        regs.map { |e| Registration.from_response(e) }
       rescue RusticiSoftwareCloudV2::ApiError=>e
         #if e.message.ends_with? "is invalid"
           return []

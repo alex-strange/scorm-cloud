@@ -68,7 +68,7 @@ module ScormCloud
 
     def download_dispatches(dispatch_attrs = {})
       if dispatch_attrs[:dispatchid].present?
-        tempfile = api_instance.get_dispatch_zip(ENV['RUSTICI_TENANT'], dispatch_attrs[:dispatch_id])
+        tempfile = api_instance.get_dispatch_zip(ENV['RUSTICI_TENANT'], dispatch_attrs[:dispatchid])
         str = tempfile.open.read
         tempfile.delete
         return str
@@ -110,8 +110,8 @@ module ScormCloud
             zipfile.add("#{d.dispatchable.title.downcase.gsub(" ","_")}_#{d.learning_system.scorm_id}_dispatch_#{d.scorm_id}.zip", file.path)
           end
         end
-        t.close
         str = open(t).read
+        t.close
         t.delete
         return str
       end
